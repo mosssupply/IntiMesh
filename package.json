@@ -1,0 +1,22 @@
+{
+	"name": "@mosssupply/intiface-meshcore",
+	"version": "0.0.1",
+	"description": "Control devices via MeshCore",
+	"license": "MIT",
+	"author": "Moss Supply",
+	"type": "module",
+	"main": "index.ts",
+	"scripts": {
+		"start": "tsx --env-file=.env index.ts"
+	},
+	"dependencies": {
+		"@liamcottle/meshcore.js": "^1.12.0",
+		"@zendrex/buttplug.js": "^0.3.3",
+		"ws": "^8.20.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.9.0",
+		"@types/ws": "^8.18.1",
+		"tsx": "^4.20.6"
+	}
+}
