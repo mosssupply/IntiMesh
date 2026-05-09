@@ -2,7 +2,7 @@ import {NodeJSSerialConnection, Constants, Message} from "@liamcottle/meshcore.j
 import * as process from "node:process";
 import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
 
-const client = new ButtplugClient("ws://10.20.110.97:12345", {
+const client = new ButtplugClient(process.env.WS_ENDPOINT, {
 	logger: consoleLogger,
 	autoReconnect: true,
 	reconnectDelay: 1000,       // initial delay
