@@ -108,6 +108,7 @@ const help = async (channelIdx: number, params: string[]) => {
                 break;
             case 'temperature':
                 reply = 'Sets temperature on connected devices.\ntemperature [percent 0-100]\ntemperature [percent 0-100] [duration (s)]';
+                break;
             case 'spray':
                 reply = 'Sets spray output on connected devices.\nspray\nspray [output 0-100]\nspray [output 0-100] [duration(s)]';
                 break;
