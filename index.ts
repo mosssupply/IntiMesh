@@ -1,6 +1,7 @@
 import {NodeJSSerialConnection, Constants} from "@liamcottle/meshcore.js";
 import * as process from "node:process";
-import {ButtplugClient, consoleLogger, Device} from "@zendrex/buttplug.js";
+import {ButtplugClient, consoleLogger} from "@zendrex/buttplug.js";
+import {stop, vibrate, oscillate, constrict, temperature, rotate, position, spray} from "./commands";
 
 const client = new ButtplugClient(process.env.WS_ENDPOINT, {
     logger: consoleLogger,
@@ -10,19 +11,14 @@ const client = new ButtplugClient(process.env.WS_ENDPOINT, {
     maxReconnectAttempts: 10,
 });
 
-// @ts-ignore
-await client.connect();
-
 client.on("deviceAdded", async ({data: {device}}) => {
     console.log(`Found: ${device.displayName ?? device.name}`);
 
     if (device.canOutput("Vibrate")) {
         await device.vibrate(0.5);
-        setTimeout(() => device.stop(), 2000);
+        setTimeout(async () => await device.stop(), 1000);
     }
 });
-
-await client.startScanning();
 
 // Check for environment variables
 if (!process.env.SERIAL_PORT) {
@@ -42,6 +38,11 @@ connection.on("connected", async () => {
     for (const channel of channels) {
         channelNames[channel.channelIdx] = channel.name;
     }
+
+    // Connect ButtplugClient
+    await client.connect();
+
+    await client.startScanning();
 });
 
 const divideReply = (message: string) => {
@@ -79,7 +80,7 @@ const divideReply = (message: string) => {
     return replies;
 };
 
-const commands = ['stop', 'vibrate', 'rotate', 'position', 'oscillate', 'constrict', 'spray'];
+const commands = ['stop', 'vibrate', 'rotate', 'position', 'oscillate', 'constrict', 'temperature', 'spray'];
 
 const help = async (channelIdx: number, params: string[]) => {
     let reply = '';
@@ -91,15 +92,27 @@ const help = async (channelIdx: number, params: string[]) => {
                 reply = 'Stops activity on connected devices.\nstop';
                 break;
             case 'vibrate':
-                reply = 'Sets vibration on connected devices. Optional intensity between 0 and 100. Optional duration in seconds.\nvibrate\nvibrate [intensity]\nvibrate [intensity] [duration]';
+                reply = 'Sets vibration on connected devices.\nvibrate\nvibrate [intensity 0-100]\nvibrate [intensity 0-100] [duration (s)]';
                 break;
             case 'rotate':
+                reply = 'Sets rotation on connected devices.\nrotate\nrotate [clockwise|anticlockwise]\nrotate [clockwise|anticlockwise] [duration (s)]';
                 break;
             case 'position':
+                reply = 'Sets position on connected devices.\nposition [percent 0-100] [duration (s)]'
                 break;
             case 'oscillate':
-                reply = 'Sets oscillation on connected devices. Optional speed between 0 and 100. Optional duration in seconds.\noscillate\noscillate [speed]\noscillate [speed] [duration]';
+                reply = 'Sets oscillation on connected devices.\noscillate\noscillate [speed 0-100]\noscillate [speed 0-100] [duration (s)]';
                 break;
+            case 'constrict':
+                reply = 'Sets constriction on connected devices.\nconstrict\nconstrict [pressure 0-100]\nconstrict [pressure 0-100] [duration (s)]';
+                break;
+            case 'temperature':
+                reply = 'Sets temperature on connected devices.\ntemperature [percent 0-100]\ntemperature [percent 0-100] [duration (s)]';
+            case 'spray':
+                reply = 'Sets spray output on connected devices.\nspray\nspray [output 0-100]\nspray [output 0-100] [duration(s)]';
+                break;
+            default:
+                reply = `Commands:\n${commands.join('\n')}`;
         }
     }
 
@@ -114,62 +127,6 @@ const help = async (channelIdx: number, params: string[]) => {
             );
         }),
     );
-}
-
-const stop = async (device: Device) => {
-    await device.stop();
-}
-
-const vibrate = async (device: Device, params: string[]) => {
-    let intensity = 1;
-    let duration: number;
-
-    if (params[0]) {
-        const parsedIntensity = parseInt(params[0]) ?? 0;
-        if (parsedIntensity >= 0 && parsedIntensity <= 100) {
-            intensity = parsedIntensity / 100
-        }
-    }
-
-    if (params[1]) {
-        const parsedDuration = parseInt(params[1]) ?? 0;
-        if (parsedDuration >= 0) {
-            duration = parsedDuration * 1000;
-        }
-    }
-
-    if (device.canOutput("Vibrate")) {
-        await device.vibrate(intensity);
-        if (duration) {
-            setTimeout(async () => await device.stop(), duration);
-        }
-    }
-}
-
-const oscillate = async (device: Device, params: string[]) => {
-    let speed = 1;
-    let duration: number;
-
-    if (params[0]) {
-        const parsedSpeed = parseInt(params[0]) ?? 0;
-        if (parsedSpeed >= 0 && parsedSpeed <= 100) {
-            speed = parsedSpeed / 100
-        }
-    }
-
-    if (params[1]) {
-        const parsedDuration = parseInt(params[1]) ?? 0;
-        if (parsedDuration >= 0) {
-            duration = parsedDuration * 1000;
-        }
-    }
-
-    if (device.canOutput("Oscillate")) {
-        await device.oscillate(speed);
-        if (duration) {
-            setTimeout(async () => await device.stop(), duration);
-        }
-    }
 }
 
 connection.on(Constants.PushCodes.MsgWaiting, async () => {
@@ -203,16 +160,23 @@ connection.on(Constants.PushCodes.MsgWaiting, async () => {
                                     case 'vibrate':
                                         vibrate(device, params);
                                         break;
-                                    case 'rotate':
-                                        break;
-                                    case 'position':
-                                        break;
                                     case 'oscillate':
                                         oscillate(device, params);
                                         break;
                                     case 'constrict':
+                                        constrict(device, params);
                                         break;
                                     case 'spray':
+                                        spray(device, params);
+                                        break;
+                                    case 'temperature':
+                                        temperature(device, params);
+                                        break;
+                                    case 'rotate':
+                                        rotate(device, params);
+                                        break;
+                                    case 'position':
+                                        position(device, params);
                                         break;
                                     default:
                                         console.log('Ignoring Message');
